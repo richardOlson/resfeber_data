@@ -18,8 +18,7 @@ class QueryPostgres:
         self.connectionsDict = {"password": self.password, "user":self.user, 
                                 "host":self.host, "port":self.port, 
                                 "database":self.database, "conn":self.conn, "cursor":self.cursor}
-        # this is to just check what the password is
-        print(f"this is from self.password {self.password}")
+        
 
 
     def fill_connect_vals(self, **kwargs):
@@ -44,7 +43,8 @@ class QueryPostgres:
             if key not in ["conn", 'cursor']:
                 if key == "database":
                     key = "dbname" # used to change the name to dbname for the connection
-                theString + key + "=" + str(val) + " "
+                theString = theString + key + "=" + str(val) + " "
+               # breakpoint()
         theString = theString.strip()
         return theString
 
@@ -83,12 +83,20 @@ class QueryPostgres:
         self.conn = connection
 
     
-        
+    def close(self):
+        """
+        This function will close the cursor and the connection object
+        """
+        self.cursor.close()
+        self.conn.close()   
         
 if __name__ == "__main__":
 
-    print(username)
-    print(password)
-    print(type(password))
+    
     d = QueryPostgres(password=password, user=username, database="airbnb")      
-    #d.createConnection()
+    d.createConnection()
+    c = d.get_cursor()
+    c.execute('SELECT version()')
+    version = c.fetchone()[0]
+    print(version)
+    d.close()
