@@ -1,5 +1,6 @@
 # This is the file that is used to query the database
 import psycopg2
+from settings import password, username, database
 
 # building a class that can query the database
 class QueryPostgres:
@@ -17,6 +18,8 @@ class QueryPostgres:
         self.connectionsDict = {"password": self.password, "user":self.user, 
                                 "host":self.host, "port":self.port, 
                                 "database":self.database, "conn":self.conn, "cursor":self.cursor}
+        # this is to just check what the password is
+        print(f"this is from self.password {self.password}")
 
 
     def fill_connect_vals(self, **kwargs):
@@ -82,4 +85,10 @@ class QueryPostgres:
     
         
         
-                                  
+if __name__ == "__main__":
+
+    print(username)
+    print(password)
+    print(type(password))
+    d = QueryPostgres(password=password, user=username, database="airbnb")      
+    #d.createConnection()
