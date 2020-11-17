@@ -7,7 +7,7 @@ load_dotenv()
 
 
 
-username = os.getenv("username")
+username = os.getenv("user_name")
 password = os.getenv("password")
 host = os.getenv("host")
 database = os.getenv("database")
