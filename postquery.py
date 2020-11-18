@@ -12,16 +12,27 @@ class QueryStrings:
         self.tableName = tableName
         self.colNames = colNames
         self.prinmary_key = None
+        self.conn = None
 
 
 
-    def put_colNames_tableName_primary_key(self, colNames, tableName, prinmary_key=None):
+    def store_col_names(self, colNames: list):
         """
         This function is used to put in the column and the table names so that 
         the other functions can be used
+        The colnames will check if there is a list of lists if it is it will only add the 0 element
+        of each list inside the list
         """
-        self.tableName= tableName
-        self.colNames = colNames
+        
+        col_names_list = []
+        # looping the colNames list
+        for col in colNames:
+            if isinstance(col, list):
+                col_names_list.append(col[0])
+            else:
+                col_names_list.append(col)
+        self.colNames = col_names_list
+
         
 
     def create_table(self, tableName, primaryKey=None, Nullable=[], colNames=None, ):
@@ -36,9 +47,14 @@ class QueryStrings:
         Returns:    Will return the string used in the exucute function to make a table with the columns that you want
 
         """
-        self.colNames = colNames
-        self.tableName = tableName
-        self.prinmary_key = primaryKey # setting the attribute primary key
+        if colNames != None:
+            self.store_col_names(colNames)
+        if tableName != None:
+            self.tableName = tableName
+        if primaryKey != None:
+            self.prinmary_key = primaryKey
+        
+        
         # using the sql version of the formated string to do this
         # queryString = sql.SQL("INSERT INTO {tableName} ({cols}) VALUES ({col_vals})").format(
         #                     tableName=  sql.Identifier(self.tableName),
@@ -46,8 +62,8 @@ class QueryStrings:
         #                     col_vals = sql.SQL(",").join(map(sql.Identifier, dataRow))
         #                     )
         
-        if colNames == None:
-            raise Exception("There are no colums secified for the table")
+        if self.colNames == None or self.conn == None:
+            raise Exception("There are no colums secified for the table or not a connection")
         # Will loop through  and build the colums and the types
         # if colNames:
         #     for i in range(len(colNames)):
@@ -70,15 +86,14 @@ class QueryStrings:
             if colNames[i][0] not in Nullable: # default is a empty list
                 theString += " NOT NULL"
             colList.append(theString)
-
+        
 
         queryString = sql.SQL(
-                                "CREATE TABLE IF NOT EXISTS {} ({cols})".format(sql.Literal(self.tableName),
-                                cols = sql.SQL(", ").join(map(sql.Identifier, colList))
+                                "CREATE TABLE IF NOT EXISTS {table} ({cols})").format(table=sql.Identifier(self.tableName),
+                                                                                cols = sql.SQL(", ").join(map(sql.SQL, colList))
                                 )
-        )
-        # queryString = f"CREATE TABLE [IF NOT EXISTS] {tableName} ("
-        # # will now loop throught colNames and will add them to the query string
+        
+        
         
         return queryString
 
@@ -117,18 +132,19 @@ class QueryStrings:
         if self.tableName == None or self.colNames == None:
             return []
         newList = []
+        
         for colname in self.colNames:
             if colname != self.prinmary_key:
                 newList.append(colname)
         return newList
 
 
-    def insert_to_table(self, dataRow, val_not_in_primary_key=True):
+    def insert_to_table(self, dataRow: list, val_not_in_primary_key=True):
         """
         This function will make the string which then can be used to isnert a data into 
         a postgresql database
 
-        dataRow will be a list or lists or tuples.  The inner list will represent a row.
+        dataRow will be a list of lists.  The inner list will represent a row.
             
         colNames will be a list of the columnNames
         """
@@ -141,32 +157,26 @@ class QueryStrings:
         columnsString = self.get_col_names() # can drop the col
                                                # if is aoutincremented in 
                                                # the database
+        
         # creating the sql for the values being put in the col_vals
         theData = [] # this is used to pass in the data to the query string below
         for row in dataRow:
-            theData.append(sql.SQL("({the_val})".format(the_val = sql.SQL(",").join(map(sql.Identifier, row)))))
-
+            s = " "
+            # converting the list to a string to # now a list of strings
+            row = [str(x) for x in row]
+            
+            #row = s.join(tS)
+            
+            ob = sql.SQL("({the_val})").format(the_val = sql.SQL(",").join(map(sql.SQL, row)))
+            theData.append(ob.as_string(self.conn))
+            #theData.append(ob)
         #To see the string version of this will need to do the queryString.as_string("putConnection_here")
         queryString = sql.SQL("INSERT INTO {tableName} ({cols}) VALUES {col_vals}").format(
-                            tableName=  sql.Identifier(self.tableName),
+                            tableName= sql.Identifier(self.tableName),
                             cols = sql.SQL(",").join(map(sql.Identifier, columnsString)),
-                            col_vals = sql.SQL(",").join(map(sql.Identifier, theData))
+                            col_vals = sql.SQL(",").join(map(sql.SQL, theData))
                             )
-        # queryString = "INSERT INTO {self.tableName} {columnsString} VALUES "
-        # # building the Values list
-        # valueString = "("
-        # # looping 
-        # for i, value in enumerate(dataRow):
-        #     if val_not_in_primary_key and value == self.prinmary_key:
-        #         continue
-        #     quote = ""
-        #     if isinstance(value, str):
-        #         quote = "\""
-        #     valueString +=  f"{quote}{value}{quote}"
-        #     if i < len(dataRow)-1:
-        #         valueString += ", "
-        # valueString += ")"
-        # queryString += valueString
+        
         return queryString
 
 
@@ -178,7 +188,7 @@ class QueryStrings:
         
         Will return "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = "
         """
-        theString = sql.SQL("SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = {table_Name}").format(
+        theString = sql.SQL("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = {table_Name}").format(
             table_Name = sql.Identifier(tableName)
         )
         # This is returning a sql SQL object -- to see the string need to do
@@ -257,7 +267,7 @@ class QueryPostgres:
         """
         return self.cursor
 
-    def get_col_names(self, query_first=False, table_Name=None):
+    def get_colNames(self, query_first=False, table_Name=None):
         """
         This function will return the column names in a list.
         If the query builder class has a list of column names associated with it, 
@@ -290,7 +300,12 @@ class QueryPostgres:
         
         return theReturnList
 
-
+    def get_query_builder(self):
+        """
+        This function will get the query builder class that is associated with the
+        postquery class
+        """
+        return self.query_builder
 
     def createConnection(self):
         """
@@ -298,6 +313,8 @@ class QueryPostgres:
         """
         try:
             connection = psycopg2.connect(self.return_connection_vals())
+            # storing the connection in the query_builder class
+            self.query_builder.conn = connection
       
         except (Exception, psycopg2.Error) as error :
             #closing database connection.
@@ -336,7 +353,7 @@ if __name__ == "__main__":
 
     
     d = QueryPostgres(password=password, user=username, database="airbnb_data") 
-    print(d.return_connection_vals())     
+    #print(d.return_connection_vals())     
     d.createConnection()
     c = d.get_cursor()
     #c.execute('SELECT version()')
@@ -344,11 +361,17 @@ if __name__ == "__main__":
     
     
     
-    s = QueryStrings(tableName='airbnb')
+    s = d.get_query_builder()
+    # ob = s.colNames_string_query(s.tableName)
+    # print(ob.as_string(d.conn))
     # creating the table
-    sql_object = s.create_table(tableName="airbnb", primaryKey="Id", colNames=[["Id", "serial" ],["lat", "numeric"], ["lon", "numeric"]])
+    sql_object = s.create_table(tableName="try", primaryKey="Id", colNames=[["Id", "serial" ],["lat", "numeric"], ["lon", "numeric"]])
     print(sql_object.as_string(d.conn))
     c.execute(sql_object)
+
+    sql_ob = s.insert_to_table([[23, 32]])
+    c.execute(sql_ob)
+    d.conn.commit()
     # tupleNames = [("id", "serial"), ("redCARs", "VARCHAR(255)"), ("blueCars", "VARCHAR(255)")]
     # nullVals = ["redCARs", "blueCars"]
     # colNames = [x[0] for x in tupleNames]
@@ -361,4 +384,4 @@ if __name__ == "__main__":
     
     # version = c.fetchone()[0]
     # print(version)
-    d.close()
+    #d.close()
