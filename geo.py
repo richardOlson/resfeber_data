@@ -17,7 +17,7 @@ class GeoLocation:
     useful Java code. All code written by Jan Philip Matuschek and ported by me 
     (which is all of this class) is owned by Jan Philip Matuschek.
     '''
-    DIST_FROM_MILES = 50
+    DIST_FROM_MILES = 150
 
     
     MIN_LAT = math.radians(-90)
