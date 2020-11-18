@@ -113,7 +113,7 @@ if __name__ == "__main__":
     #     create_staging(cursor)
 
     # send_csv_psql(conn, path_to_csv, "airb")
-    # # C:\Users\rich\Richard_python\Lambda\labs\resfeber_data\radian_df.csv
+    # # C:\Users\rich\Richard_python\Lambda\labs\resfeber_data\radian_df.csv   
     
     # Instaciating the GeoLocation class
     geoClass = GeoLocation.from_degrees(deg_lat=37.774929, deg_lon=-122.419418)
