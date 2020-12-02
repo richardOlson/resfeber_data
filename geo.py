@@ -1,6 +1,8 @@
 # This is the file that will the code to find all the points that are in a certain 
 # radius from the point given
 
+# The bulk of this class was taken from 
+# https://github.com/jfein/PyGeoTools/blob/master/geolocation.py
 import math
 
 MILES_IN_ONE_KILOMETER = 0.62137
@@ -17,7 +19,7 @@ class GeoLocation:
     useful Java code. All code written by Jan Philip Matuschek and ported by me 
     (which is all of this class) is owned by Jan Philip Matuschek.
     '''
-    DIST_FROM_MILES = 150
+    DIST_FROM_MILES = 10
 
     
     MIN_LAT = math.radians(-90)
@@ -28,6 +30,9 @@ class GeoLocation:
     EARTH_RADIUS = 6378.1  # kilometers
 
     def calc_radius(self):
+        """
+        Will calculate the radius in kilometers
+        """
         kil_dis = GeoLocation.from_miles(GeoLocation.DIST_FROM_MILES)
         ans = kil_dis/GeoLocation.EARTH_RADIUS
         return ans
@@ -52,8 +57,13 @@ class GeoLocation:
         
     
     
-    @classmethod
+    @classmethod    
     def from_degrees(cls, deg_lat, deg_lon):
+        """
+        Builds the GeoLocation class with the degrees
+        lat and lon are stored in radian becuase the math needs to be in radians
+        
+        """
         # Instanciate the class from deg
         rad_lat = math.radians(deg_lat)
         rad_lon = math.radians(deg_lon)
@@ -61,6 +71,9 @@ class GeoLocation:
         
     @classmethod
     def from_radians(cls, rad_lat, rad_lon):
+        """
+        Instanciating a class from radians 
+        """
         # Instanciate the class from radians
         deg_lat = math.degrees(rad_lat)
         deg_lon = math.degrees(rad_lon)
