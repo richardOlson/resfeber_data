@@ -166,6 +166,7 @@ def return_avg_price(lat, lon, room_type, num_nights):
 
 if __name__ == "__main__":
 
+
     
 
     # printing out the path to the model
