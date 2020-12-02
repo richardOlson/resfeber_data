@@ -12,6 +12,8 @@ import pandas as pd
 import warnings
 import sys
 
+MULTIPLIER = 3
+
 path_to_csv = os.path.join(os.path.realpath(__file__), "..", "radian_df.csv")
 
 path_to_model = os.path.join(os.path.realpath(__file__), "..", "model\\gradient_boost_model.joblib")
@@ -84,7 +86,7 @@ def room_to_num(room:str):
 
 	
 
-def query(bounding_coord, loc :GeoLocation, connection, num_nights, room_type):
+def query(bounding_coord, loc :GeoLocation, connection, num_nights, room_type, ang_dist):
     """
     This is the function that will make the query string to look at the database.  This query string is taken from 
     the site 
@@ -111,7 +113,7 @@ def query(bounding_coord, loc :GeoLocation, connection, num_nights, room_type):
     math_sql = sql.SQL("acos(sin({loc_lat_rad}) * sin(lat) + cos({loc_lat_rad}) * cos(lat) * cos(lon - ({loc_lon_rad}))) <= {dist_divide_radius}").format(
         loc_lat_rad=sql.SQL(str(loc.rad_lat)),
         loc_lon_rad=sql.SQL(str(loc.rad_lon)),
-        dist_divide_radius=sql.SQL(str(loc.radius))
+        dist_divide_radius=sql.SQL(str(ang_dist)) # This is the angular distance
     )
     math_str = math_sql.as_string(connection) # turning this portion in to a string that will be added to main query
 
@@ -147,19 +149,23 @@ def return_avg_price(lat, lon, room_type, num_nights):
     geoClass = GeoLocation.from_degrees(deg_lat=lat, deg_lon= lon)
     # getting the bound coord
     bounding = geoClass.bounding_locations(geoClass.dist_kilo, geoClass.EARTH_RADIUS)
+
     
     # making it so that the radius can grow to 5 once
-    while len(tuple_list) < 1 and the_counter < 2:
+    while len(tuple_list) < 1 and the_counter <= 2:
+        ang_dist = geoClass.angular_dist
+        dist = geoClass.dist_kilo
         if the_counter == 2:
             # will increase the radius of the search distance
-            geoClass.radius = geoClass.radius * 2
-            bounding = geoClass.bounding_locations(geoClass.dist_kilo *2, )
-        # making sure the distance is set to the initial value
-        elif geoClass.DIST_FROM_MILES != 2:
+            ang_dist = geoClass.angular_dist * MULTIPLIER
+            dist = dist * MULTIPLIER
             
-        
+        bounding = geoClass.bounding_locations(dist)    
+
+        print(f"Info:  The counter number is {the_counter}", file=sys.stderr)  # printing a info statement
         # calling the query function
-        sql_obj = query(bounding_coord=bounding, loc=geoClass, connection=conn, num_nights=num_nights, room_type=room_type)
+        sql_obj = query(bounding_coord=bounding, loc=geoClass, connection=conn, 
+                        num_nights=num_nights, room_type=room_type, ang_dist=ang_dist)
         # fetching the results
         cur.execute(sql_obj)
         # getting the info
@@ -167,12 +173,18 @@ def return_avg_price(lat, lon, room_type, num_nights):
         
         the_counter +=1 # incrementing the counter
 
+
+
     # closing the connections
     cur.close()
     conn.close()
+
+    
     if len(tuple_list) >= 1: # this will mean that there is a value that is in the tuplelist
         # calling to get the average price 
         price = get_avg(tuple_list=tuple_list)
+
+    # using the model to find the price
     else:
         # making the input into a dataframe to use in the model to predic
         # room_type being changed to a numerical value to use in the model
@@ -189,11 +201,7 @@ if __name__ == "__main__":
 
     
 
-    # printing out the path to the model
-    print(f"This is the database name: {database}")
-    print(f"This is the password: {password}")
-    print(f"This is the host: {host}")
     
-    price = return_avg_price(lat=40.713012, lon=-74.007130, room_type="Private room", num_nights=1)
+    price = return_avg_price(lat=40.1652, lon=111.6108, room_type="Shared room", num_nights=1)
 
     print(f"The price is the following: {price}")

@@ -29,9 +29,10 @@ class GeoLocation:
     
     EARTH_RADIUS = 6378.1  # kilometers
 
-    def calc_radius(self):
+    def calc_angular_dist(self):
         """
-        Will calculate the radius in kilometers
+        Will calculate the angular distance
+        of the number in the DIST_FROM_MILES in kilometers
         """
         kil_dis = GeoLocation.from_miles(GeoLocation.DIST_FROM_MILES)
         ans = kil_dis/GeoLocation.EARTH_RADIUS
@@ -93,7 +94,7 @@ class GeoLocation:
         self.deg_lat = float(deg_lat)
         self.deg_lon = float(deg_lon)
         self._check_bounds()
-        self.radius = self.calc_radius()
+        self.angular_dist = self.calc_angular_dist()
         self.dist_kilo = GeoLocation.from_miles(GeoLocation.DIST_FROM_MILES)
         
     def __str__(self):
