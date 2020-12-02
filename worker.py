@@ -135,19 +135,38 @@ def return_avg_price(lat, lon, room_type, num_nights):
     except:
         print("There was a problem with the connection to the database for the airbnb", file=sys.stderr)
         exit(1)
-
+    # counter will be used to make a change to the distance to look will start at 2 miles and the go to 5 
+    # if still no results will then use the model
+    the_counter = 1
+    tuple_list = []
+    
+    # getting the cursor
+    cur = conn.cursor()
     # getting the geolacation and the bounding box
     # Instaciating the GeoLocation class
     geoClass = GeoLocation.from_degrees(deg_lat=lat, deg_lon= lon)
     # getting the bound coord
     bounding = geoClass.bounding_locations(geoClass.dist_kilo, geoClass.EARTH_RADIUS)
-    # calling the query function
-    sql_obj = query(bounding_coord=bounding, loc=geoClass, connection=conn, num_nights=num_nights, room_type=room_type)
-    # fetching the results
-    cur = conn.cursor()
-    cur.execute(sql_obj)
-    # getting the info
-    tuple_list = cur.fetchall()
+    
+    # making it so that the radius can grow to 5 once
+    while len(tuple_list) < 1 and the_counter < 2:
+        if the_counter == 2:
+            # will increase the radius of the search distance
+            geoClass.radius = geoClass.radius * 2
+            bounding = geoClass.bounding_locations(geoClass.dist_kilo *2, )
+        # making sure the distance is set to the initial value
+        elif geoClass.DIST_FROM_MILES != 2:
+            
+        
+        # calling the query function
+        sql_obj = query(bounding_coord=bounding, loc=geoClass, connection=conn, num_nights=num_nights, room_type=room_type)
+        # fetching the results
+        cur.execute(sql_obj)
+        # getting the info
+        tuple_list = cur.fetchall()
+        
+        the_counter +=1 # incrementing the counter
+
     # closing the connections
     cur.close()
     conn.close()
@@ -157,6 +176,7 @@ def return_avg_price(lat, lon, room_type, num_nights):
     else:
         # making the input into a dataframe to use in the model to predic
         # room_type being changed to a numerical value to use in the model
+        print(f"Info:  Using the model to get airbnb price." ,file=sys.stderr)
         room_type = room_to_num(room_type)
         price = gradient_boost_model.predict(pd.DataFrame({"lat":lat, "lon": lon, "room_type": room_type, "num_nights":num_nights},
                                                     index=[0]))[0] # used to get the value out of the prediction array
@@ -173,6 +193,6 @@ if __name__ == "__main__":
     print(f"This is the password: {password}")
     print(f"This is the host: {host}")
     
-    price = return_avg_price(lat=40.235119, lon=-111.662193, room_type="Private room", num_nights=1)
+    price = return_avg_price(lat=40.713012, lon=-74.007130, room_type="Private room", num_nights=1)
 
     print(f"The price is the following: {price}")
